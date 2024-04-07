@@ -12,6 +12,10 @@
 | `created_time` | timestamp |
 | `auto_clean` | tinyint(1) |
 
+### 服务
+- 引入submodule，通过rpc的方式向外提供服务
+- 使用Consul配合grpc做服务注册
+
 ### Benchmark
 
 当发号器step逼近1e6时
