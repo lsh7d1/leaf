@@ -3,18 +3,72 @@ package main
 import (
 	"context"
 	"fmt"
-	"leaf/dal"
-	"leaf/dao"
-	"leaf/service"
+	"log"
 	"sync"
 	"testing"
+	"time"
+
+	"leaf/dal"
+	"leaf/dao"
+	v1 "leaf/pb/api/leaf/v1"
+	"leaf/service"
 
 	"github.com/panjf2000/ants/v2"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 )
 
-const mysqldsn = "root:root1234@tcp(127.0.0.1:13306)/db2?charset=utf8mb4&parseTime=True"
+// 当发号器step逼近1e6时
+// 本机通过rpc调用，qps大约在1e6上下
+// goos: linux
+// goarch: amd64
+// pkg: leaf
+// cpu: AMD Ryzen 7 5800H with Radeon Graphics
+// BenchmarkMainInClient-16            8838            515490 ns/op            5168 B/op        103 allocs/op
+// PASS
+// ok      leaf    5.633s
 
-var _ = mysqldsn
+func BenchmarkMainInClient(b *testing.B) {
+	var addr = "127.0.0.1:9090"
+	// 连接到server，禁用安全传输
+	conn, err := grpc.NewClient(addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		log.Fatalf("did not connect: %v", err)
+	}
+	defer conn.Close()
+	c := v1.NewLeafSegmentServiceClient(conn)
+
+	ctx := context.TODO()
+	for i := 0; i < b.N; i++ {
+		_, err := c.GetSegmentId(ctx, &v1.GenIdsRequest{BizTag: "bbbb", Count: 1})
+		if err != nil {
+			log.Fatalf("could not greet: %v", err)
+		}
+	}
+}
+
+func TestMainInClient(t *testing.T) {
+	var addr = "127.0.0.1:9090"
+	// 连接到server，禁用安全传输
+	conn, err := grpc.NewClient(addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		log.Fatalf("did not connect: %v", err)
+	}
+	defer conn.Close()
+	c := v1.NewLeafSegmentServiceClient(conn)
+
+	// 执行RPC调用并打印收到的响应数据
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
+	defer cancel()
+	start := time.Now()
+	_, err = c.GetSegmentId(ctx, &v1.GenIdsRequest{BizTag: "bbbb", Count: 1000000})
+	if err != nil {
+		log.Fatalf("could not greet: %v", err)
+	}
+
+	// t.Logf("Greeting: %#v", r.GetIds())
+	t.Logf("time used: %v", time.Since(start))
+}
 
 func TestSegmentService(t *testing.T) {
 	svc := service.NewSegmentService(dao.NewSegmentRepoImpl(dal.ConnectSQLite("./test.db")))
