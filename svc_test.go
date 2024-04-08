@@ -13,6 +13,7 @@ import (
 	v1 "leaf/pb/api/leaf/v1"
 	"leaf/service"
 
+	_ "github.com/mbobakov/grpc-consul-resolver"
 	"github.com/panjf2000/ants/v2"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -69,7 +70,26 @@ func TestMainInClient(t *testing.T) {
 	// t.Logf("Greeting: %#v", r.GetIds())
 	t.Logf("time used: %v", time.Since(start))
 }
+func TestServiceDiscovery(t *testing.T) {
+	conn, err := grpc.NewClient(
+		// consul服务
+		"consul://localhost:8500/segment?healthy=true",
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+	)
+	if err != nil {
+		log.Fatalf("grpc.NewClient failed, err: %v", err)
+	}
+	defer conn.Close()
 
+	c := v1.NewLeafSegmentServiceClient(conn)
+	ctx := context.TODO()
+	resp, err := c.GetSegmentId(ctx, &v1.GenIdsRequest{BizTag: "bbbb", Count: 1})
+	if err != nil {
+		fmt.Printf("c.GetSegmentId failed, err:%v\n", err)
+		return
+	}
+	fmt.Printf("resp:%v\n", resp.GetIds())
+}
 func TestSegmentService(t *testing.T) {
 	svc := service.NewSegmentService(dao.NewSegmentRepoImpl(dal.ConnectSQLite("./test.db")))
 	//svc.ShowBuffers()

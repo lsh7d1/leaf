@@ -80,7 +80,7 @@ func getOutIP() (net.IP, error) {
 	return localaddr.IP, nil
 }
 
-const mysqldsn = "root:root1234@tcp(192.168.10.7:13306)/db2?charset=utf8mb4&parseTime=True"
+const mysqldsn = "root:root1234@tcp(127.0.0.1:13306)/db2?charset=utf8mb4&parseTime=True"
 
 var _ = mysqldsn
 
