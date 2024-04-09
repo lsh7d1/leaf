@@ -7,7 +7,7 @@ import (
 	"runtime"
 
 	"leaf/dal"
-	"leaf/dao"
+	"leaf/dal/dao"
 	pb "leaf/pb/api/leaf/v1"
 	"leaf/service"
 
@@ -64,6 +64,8 @@ func main() {
 	// 注册服务到Consul
 	cc.Agent().ServiceRegister(srv)
 
+	fmt.Println("Consul Server runing at http://127.0.0.1:8500")
+
 	err = s.Serve(lis)
 	if err != nil {
 		panic(fmt.Errorf("s.Serve(lis) failed, err: %v", err))
@@ -96,8 +98,8 @@ func newIdIssuer() pb.LeafSegmentServiceServer {
 		panic(fmt.Errorf("ants.NewPool(runtime.NumCPU()) failed, err: %v", err))
 	}
 
-	// svc := service.NewSegmentService(dao.NewSegmentRepoImpl(dal.ConnectMySQL(mysqldsn).Debug()))
-	svc := service.NewSegmentService(dao.NewSegmentRepoImpl(dal.ConnectSQLite("./test.db")))
+	svc := service.NewSegmentService(dao.NewSegmentRepoImpl(dal.ConnectMySQL(mysqldsn).Debug()))
+	// svc := service.NewSegmentService(dao.NewSegmentRepoImpl(dal.ConnectSQLite("./test.db")))
 	i := &idIssuer{
 		svc: svc,
 		p:   p,
